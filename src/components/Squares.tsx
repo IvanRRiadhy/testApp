@@ -114,7 +114,9 @@ const Squares: React.FC<Props> = ({ beaconData }) => {
 
     generateCirclesAndSquares();
   }, [JSON.stringify(beaconData)]); // Stringify to track deep changes
-
+const [dotGroups, setDotGroups] = useState<
+  { pair: string; dots: { x: number; y: number }[] }[]
+>([]);
   //Square Dragging Handler
   const handleSquareDragMove = (e: KonvaEventObject<DragEvent>, id: string) => {
     let { x, y } = e.target.position();
@@ -362,8 +364,65 @@ const Squares: React.FC<Props> = ({ beaconData }) => {
     return points;
   };
 
+useEffect(() => {
+  // Array of { pair: string, dots: {x, y}[] }
+  const allDotGroups: { pair: string; dots: { x: number; y: number }[] }[] = [];
+  squares.forEach((startSquare) => {
+    squares.forEach((endSquare) => {
+      if (startSquare.id < endSquare.id) {
+        const [startX, startY, endX, endY] = getEdgePosition(
+          startSquare,
+          endSquare
+        );
+        const points = getSidePointsAlongArrow(
+          { x: startX, y: startY },
+          { x: endX, y: endY },
+          50,
+          30
+        );
+        allDotGroups.push({
+          pair: `${startSquare.id} ↔ ${endSquare.id}`,
+          dots: points,
+        });
+      }
+    });
+  });
+  setDotGroups(allDotGroups);
+}, [squares]);
+
   return (
-    <div>
+    <div style={{ position: "relative" }}>
+      {/* Overlay for dot coordinates */}
+<div
+  style={{
+    position: "absolute",
+    top: 10,
+    right: 10,
+    background: "rgba(255,255,255,0.95)",
+    border: "1px solid #ccc",
+    borderRadius: 6,
+    padding: "10px 16px",
+    fontSize: 13,
+    maxHeight: 400,
+    overflowY: "auto",
+    zIndex: 10,
+    minWidth: 220,
+  }}
+>
+  <b>Dots by Pair</b>
+  {dotGroups.map((group, idx) => (
+    <div key={group.pair} style={{ marginBottom: 10 }}>
+      <div style={{ fontWeight: "bold", color: "#333" }}>{group.pair}</div>
+      <ul style={{ margin: 0, paddingLeft: 18 }}>
+        {group.dots.map((dot, i) => (
+          <li key={i}>
+            x: {dot.x.toFixed(1)}, y: {dot.y.toFixed(1)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  ))}
+</div>
       <Stage
         width={window.innerWidth}
         height={window.innerHeight}
